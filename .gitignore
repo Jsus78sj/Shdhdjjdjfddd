@@ -1,0 +1,24 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Build outputs & signing
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# OS
+.DS_Store
+
+# Room schemas — keep in Git (reference for Migrations)
+!app/schemas/
+!app/schemas/**
