@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "رقم الإصدار (مثال: v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      INPUT_TAG: ${{ github.event.inputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify signing secrets
+        run: |
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Missing repository secret: $v (see README: نشر إصدار جديد)"
+              exit 1
+            fi
+          done
+
+      - name: Resolve version
+        id: ver
+        run: |
+          TAG="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          case "$TAG" in v*) ;; *) TAG="v$TAG" ;; esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Decode keystore
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        run: >
+          gradle assembleRelease --no-daemon --stacktrace
+          -PappVersionName="${{ steps.ver.outputs.name }}"
+          -PappVersionCode="${{ github.run_number }}"
+
+      - name: Prepare APK
+        run: cp app/build/outputs/apk/release/app-release.apk Daftar.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: دفتر ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          files: Daftar.apk
