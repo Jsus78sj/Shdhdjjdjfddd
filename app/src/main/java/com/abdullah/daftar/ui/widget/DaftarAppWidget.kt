@@ -1,8 +1,7 @@
 package com.abdullah.daftar.ui.widget
 
+import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -10,6 +9,8 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -143,14 +144,15 @@ class DaftarAppWidget : GlanceAppWidget() {
         }
     }
 
+    // الـ ActionParameters تُمرَّر إلى النشاط كـ extras باسم المفتاح نفسه (MainActivity.EXTRA_OPEN_FILE_ID)
     private fun openFileAction(context: Context, fileId: Long) = actionStartActivity(
-        Intent(context, MainActivity::class.java)
-            .putExtra(MainActivity.EXTRA_OPEN_FILE_ID, fileId)
-            // data فريد لكل ملف: PendingIntent يتجاهل الـ extras عند المقارنة فكانت ستُدمج الأسطر معاً
-            .setData(Uri.parse("daftar://open/$fileId"))
+        ComponentName(context, MainActivity::class.java),
+        actionParametersOf(OPEN_FILE_KEY to fileId)
     )
 
     companion object {
+        private val OPEN_FILE_KEY = ActionParameters.Key<Long>(MainActivity.EXTRA_OPEN_FILE_ID)
+
         fun updateAllWidgets(context: Context) {
             CoroutineScope(Dispatchers.IO).launch {
                 runCatching {
