@@ -52,8 +52,15 @@ class MainActivity : ComponentActivity() {
     }
 
     /** معرّف الملف المطلوب فتحه (من ضغطة على الودجت)، أو null. */
-    private fun extractOpenFileId(intent: Intent?): Long? =
-        intent?.getLongExtra(EXTRA_OPEN_FILE_ID, -1L)?.takeIf { it > 0L }
+    private fun extractOpenFileId(intent: Intent?): Long? {
+        val raw = intent?.extras?.get(EXTRA_OPEN_FILE_ID)
+        val id = when (raw) {
+            is Number -> raw.toLong()
+            is String -> raw.toLongOrNull()
+            else -> null
+        }
+        return id?.takeIf { it > 0L }
+    }
 
     private fun extractPdfUrisFromIntent(intent: Intent?): List<Uri> {
         if (intent == null) return emptyList()
