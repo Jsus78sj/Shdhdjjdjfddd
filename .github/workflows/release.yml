@@ -17,23 +17,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       INPUT_TAG: ${{ github.event.inputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Verify signing secrets
-        run: |
-          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            if [ -z "${!v}" ]; then
-              echo "::error::Missing repository secret: $v (see README: نشر إصدار جديد)"
-              exit 1
-            fi
-          done
 
       - name: Resolve version
         id: ver
@@ -54,19 +41,14 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Decode keystore
-        run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-
-      - name: Build signed release APK
+      - name: Build debug APK
         run: >
-          gradle assembleRelease --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace
           -PappVersionName="${{ steps.ver.outputs.name }}"
           -PappVersionCode="${{ github.run_number }}"
 
       - name: Prepare APK
-        run: cp app/build/outputs/apk/release/app-release.apk Daftar.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Daftar.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
